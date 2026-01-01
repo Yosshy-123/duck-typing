@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あひるタイピング</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&family=Zen+Maru+Gothic:wght@500;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #81d4fa;
+            --water-color: #29b6f6;
+            --text-color: #2c3e50;
+            --duck-yellow: #f1c40f;
+            --duck-beak: #e67e22;
+            --highlight-color: #e74c3c; /* タイプ済みの文字色 */
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Zen Maru Gothic', sans-serif; /* 全体を丸文字に */
+            user-select: none;
+        }
+
+        /* --- 背景（川）の装飾 --- */
+        .river {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(to bottom, #4fc3f7 0%, #0288d1 100%);
+            z-index: 0;
+        }
+        
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: rgba(255,255,255,0.2);
+            animation: wave 5s linear infinite;
+        }
+
+        /* --- UI表示 --- */
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            padding: 0 40px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+            font-size: 1.5rem;
+            color: #fff;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+            font-weight: bold;
+        }
+
+        #game-over-screen, #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 200;
+            backdrop-filter: blur(5px);
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+
+        h1 { 
+            font-size: 4rem; 
+            margin: 0 0 20px 0; 
+            color: var(--duck-yellow); 
+            text-shadow: 4px 4px 0 #000;
+            line-height: 1.2;
+        }
+        
+        p { font-size: 1.8rem; margin: 10px 0; }
+        
+        .sub-text {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            color: #ddd;
+        }
+
+        .blink { animation: blink 1s infinite; }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- あひるコンテナ --- */
+        .duck-container {
+            position: absolute;
+            bottom: 15%;
+            width: 100px;
+            height: 100px;
+            z-index: 10;
+            transition: transform 0.1s;
+        }
+
+        /* 単語バルーン */
+        .word-label {
+            position: absolute;
+            top: -45px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-family: 'JetBrains Mono', monospace; /* 英字は見やすく */
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #ccc;
+            white-space: nowrap;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+        /* 吹き出しの三角 */
+        .word-label::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid white;
+        }
+
+        .typed { color: #2c3e50; }
+        
+        /* ターゲット中 */
+        .target .word-label {
+            background: #fff;
+            border: 4px solid var(--highlight-color);
+            transform: translateX(-50%) scale(1.1);
+            color: #999;
+            z-index: 20;
+        }
+        .target .word-label::after {
+            border-top-color: var(--highlight-color); /* 枠線色に合わせる */
+            bottom: -12px; /* 位置調整 */
+        }
+        .target .typed { color: var(--highlight-color); }
+
+        /* --- CSS Art Duck --- */
+        .duck-art {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform: scale(0.8);
+            animation: swim-bob 1s ease-in-out infinite alternate;
+        }
+
+        .duck-body {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            width: 80px;
+            height: 50px;
+            background: var(--duck-yellow);
+            border-radius: 0 0 40px 40px;
+        }
+        .duck-body::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: -5px;
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 16px solid var(--duck-yellow);
+            transform: rotate(20deg);
+        }
+        .duck-head {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            background: var(--duck-yellow);
+            border-radius: 50%;
+        }
+        .duck-eye {
+            position: absolute;
+            top: 28px;
+            left: 50px;
+            width: 6px;
+            height: 6px;
+            background: #2d3436;
+            border-radius: 50%;
+            z-index: 2;
+        }
+        .duck-eye::after {
+            content: '';
+            position: absolute;
+            top: 1px;
+            right: 1px;
+            width: 2px;
+            height: 2px;
+            background: #fff;
+            border-radius: 50%;
+        }
+        .duck-beak {
+            position: absolute;
+            top: 36px;
+            left: 62px;
+            width: 20px;
+            height: 12px;
+            background: var(--duck-beak);
+            border-radius: 4px 8px 8px 4px;
+            z-index: 1;
+        }
+
+        @keyframes swim-bob {
+            0% { transform: scale(0.8) translateY(0); }
+            100% { transform: scale(0.8) translateY(-5px); }
+        }
+
+        .poof { animation: pop-out 0.3s forwards; }
+        @keyframes pop-out {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="river">
+        <div class="wave"></div>
+    </div>
+
+    <div id="ui-layer">
+        <div id="score-display">スコア: 0</div>
+        <div id="life-display">ライフ: ❤️❤️❤️</div>
+    </div>
+
+    <div id="start-screen">
+        <h1>あひる<br>タイピング</h1>
+        <p class="blink">スペースキーでスタート</p>
+        <p class="sub-text">単語をタイプして、あひるを捕まえよう！</p>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <h1>ゲームオーバー</h1>
+        <p id="final-score">スコア: 0</p>
+        <p class="blink">スペースキーでリトライ</p>
+    </div>
+
+    <div id="stage"></div>
+
+    <script>
+        // 単語リスト
+        const words = [
+            "ahiru", "duck", "cute", "kawaii", "ahiru", "duck", "yellow", "duck", "information", "luck", "truck", "duckduckgo", "docker", "duck", "duck", "kawaii", "ahiru", "cute", "aisiteru"
+        ];
+
+        let isPlaying = false;
+        let score = 0;
+        let life = 3;
+        let spawnRate = 2000; 
+        let duckSpeed = 2; 
+        let lastSpawnTime = 0;
+        let animationFrameId;
+        
+        let ducks = [];
+        let targetDuck = null;
+
+        const stage = document.getElementById('stage');
+        const scoreDisplay = document.getElementById('score-display');
+        const lifeDisplay = document.getElementById('life-display');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+
+        function startGame() {
+            isPlaying = true;
+            score = 0;
+            life = 3;
+            duckSpeed = 1.5;
+            spawnRate = 2000;
+            ducks = [];
+            targetDuck = null;
+            stage.innerHTML = '';
+            
+            updateUI();
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            
+            lastSpawnTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameLoop(timestamp) {
+            if (!isPlaying) return;
+
+            if (timestamp - lastSpawnTime > spawnRate) {
+                spawnDuck();
+                lastSpawnTime = timestamp;
+                if(spawnRate > 800) spawnRate -= 50;
+                if(duckSpeed < 4) duckSpeed += 0.05;
+            }
+
+            const width = window.innerWidth;
+            const toRemove = [];
+
+            ducks.forEach((duck, index) => {
+                duck.x += duckSpeed;
+                duck.element.style.left = duck.x + 'px';
+
+                if (duck.x > width) {
+                    life--;
+                    updateUI();
+                    stage.removeChild(duck.element);
+                    toRemove.push(index);
+                    
+                    if(targetDuck === duck) targetDuck = null;
+
+                    if (life <= 0) {
+                        gameOver();
+                    }
+                }
+            });
+
+            for(let i = toRemove.length - 1; i >= 0; i--){
+                ducks.splice(toRemove[i], 1);
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function spawnDuck() {
+            const word = words[Math.floor(Math.random() * words.length)];
+            const duckEl = document.createElement('div');
+            duckEl.className = 'duck-container';
+            
+            duckEl.innerHTML = `
+                <div class="word-label">${word}</div>
+                <div class="duck-art">
+                    <div class="duck-head"></div>
+                    <div class="duck-eye"></div>
+                    <div class="duck-beak"></div>
+                    <div class="duck-body"></div>
+                </div>
+            `;
+            
+            const randomBottom = 10 + Math.random() * 20; 
+            duckEl.style.bottom = randomBottom + '%';
+            
+            stage.appendChild(duckEl);
+
+            ducks.push({
+                element: duckEl,
+                word: word,
+                remaining: word,
+                typed: "",
+                x: -120
+            });
+        }
+
+        function updateUI() {
+            scoreDisplay.innerText = `スコア: ${score}`;
+            let lifeStr = "ライフ: ";
+            for(let i=0; i<life; i++) lifeStr += "❤️";
+            lifeDisplay.innerText = lifeStr;
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            cancelAnimationFrame(animationFrameId);
+            document.getElementById('final-score').innerText = `スコア: ${score}`;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (!isPlaying) startGame();
+                return;
+            }
+
+            if (!isPlaying) return;
+
+            const key = e.key.toLowerCase();
+            if (!/^[a-z]$/.test(key)) return;
+
+            if (targetDuck) {
+                checkInput(targetDuck, key);
+            } else {
+                const potentialTarget = ducks.find(d => d.remaining.startsWith(key));
+                if (potentialTarget) {
+                    targetDuck = potentialTarget;
+                    targetDuck.element.classList.add('target');
+                    checkInput(targetDuck, key);
+                }
+            }
+        });
+
+        function checkInput(duck, key) {
+            if (duck.remaining.startsWith(key)) {
+                duck.typed += key;
+                duck.remaining = duck.remaining.substring(1);
+                
+                const label = duck.element.querySelector('.word-label');
+                label.innerHTML = `<span class="typed">${duck.typed}</span>${duck.remaining}`;
+
+                if (duck.remaining.length === 0) {
+                    score += duck.word.length * 10;
+                    updateUI();
+                    
+                    duck.element.classList.add('poof');
+                    setTimeout(() => {
+                        if(duck.element.parentNode) stage.removeChild(duck.element);
+                    }, 300);
+
+                    ducks = ducks.filter(d => d !== duck);
+                    targetDuck = null;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
