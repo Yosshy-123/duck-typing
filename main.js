@@ -117,8 +117,8 @@ function gameLoop(timestamp) {
 	if (timestamp - lastSpawnTime > spawnRate) {
 		spawnDuck();
 		lastSpawnTime = timestamp;
-		if (spawnRate > 800) spawnRate -= 50;
-		if (duckSpeed < 4) duckSpeed += 0.05;
+		if (spawnRate > 800) spawnRate -= 10;
+		if (duckSpeed < 4) duckSpeed += 0.01;
 	}
 
 	const width = window.innerWidth;
@@ -154,15 +154,11 @@ function spawnDuck() {
 	const duckEl = document.createElement('div');
 	duckEl.className = 'duck-container';
 
+	// CSS 描画をやめて画像に置き換える
 	duckEl.innerHTML = `
-                <div class="word-label">${word}</div>
-                <div class="duck-art">
-                    <div class="duck-head"></div>
-                    <div class="duck-eye"></div>
-                    <div class="duck-beak"></div>
-                    <div class="duck-body"></div>
-                </div>
-            `;
+		<div class="word-label">${word}</div>
+		<img src="duck.png" alt="duck">
+	`;
 
 	const randomBottom = 10 + Math.random() * 20;
 	duckEl.style.bottom = randomBottom + '%';
