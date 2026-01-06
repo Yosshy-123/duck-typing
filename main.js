@@ -196,6 +196,14 @@ document.addEventListener('keydown', (e) => {
 
 	if (!isPlaying) return;
 
+	if (e.key === 'Shift') {
+		if (targetDuck) {
+			targetDuck.element.classList.remove('target');
+			targetDuck = null;
+		}
+		return;
+	}
+
 	const key = e.key.toLowerCase();
 	if (!/^[a-z]$/.test(key)) return;
 
