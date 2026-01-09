@@ -87,7 +87,7 @@ let isPaused = false;
 let score = 0;
 let life = 3;
 let spawnRate = 2000;
-let duckSpeed = 1.5;
+let duckSpeed = 2;
 let lastSpawnTime = 0;
 let pauseTime = 0;
 let animationFrameId;
